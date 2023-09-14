@@ -1,16 +1,37 @@
 import React, { useState, useEffect } from 'react';
 import { Text, View, TouchableOpacity, StyleSheet } from 'react-native';
 import { Camera } from 'expo-camera';
+import CameraKitCamera from 'react-native-camera-kit';
 
 export default function App() {
   const [hasPermission, setHasPermission] = useState(null);
   const [type, setType] = useState(Camera.Constants.Type.front);
+  const [redParts, setRedParts] = useState([]);
+  const [isPersonDetected, setIsPersonDetected] = useState(false);
 
   useEffect(() => {
     (async () => {
       const { status } = await Camera.requestPermissionsAsync();
       setHasPermission(status === 'granted');
     })();
+  }, []);
+
+    return () => {
+      // Clean up when the component unmounts
+      clearInterval(intervalId);
+    };
+  }, []);
+
+  useEffect(() => {
+    // Generate random indices for red parts
+    const randomIndices = [];
+    while (randomIndices.length < 3) {
+      const randomIndex = Math.floor(Math.random() * 9); // Assuming a 3x3 grid
+      if (!randomIndices.includes(randomIndex)) {
+        randomIndices.push(randomIndex);
+      }
+    }
+    setRedParts(randomIndices);
   }, []);
 
   if (hasPermission === null) {
@@ -25,14 +46,23 @@ export default function App() {
     <View style={{ flex: 1 }}>
       <Camera style={{ flex: 1 }} type={type}>
         <View style={styles.container}>
-          {/* Display your game elements here */}
-          {Array(3).fill(0).map((_, i) => (
-            <View style={styles.cameraSection} key={i}>
-              {Array(3).fill(0).map((_, j) => (
-                <View style={styles.column} key={j}></View>
-              ))}
-            </View>
-          ))}
+          {Array(3)
+            .fill(0)
+            .map((_, i) => (
+              <View style={styles.cameraSection} key={i}>
+                {Array(3)
+                  .fill(0)
+                  .map((_, j) => (
+                    <View
+                      style={[
+                        styles.column,
+                        redParts.includes(i * 3 + j) && styles.redColumn,
+                      ]}
+                      key={j}
+                    ></View>
+                  ))}
+              </View>
+            ))}
         </View>
       </Camera>
       <View style={styles.buttonContainer}>
@@ -67,6 +97,9 @@ const styles = StyleSheet.create({
     flex: 1,
     borderWidth: 2,
     borderColor: 'red',
+  },
+  redColumn: {
+    backgroundColor: 'red',
   },
   buttonContainer: {
     flex: 0.1,
