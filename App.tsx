@@ -1,25 +1,18 @@
+// @ts-nocheck
 import React, { useState, useEffect } from 'react';
 import { Text, View, TouchableOpacity, StyleSheet } from 'react-native';
 import { Camera } from 'expo-camera';
-import CameraKitCamera from 'react-native-camera-kit';
 
 export default function App() {
   const [hasPermission, setHasPermission] = useState(null);
   const [type, setType] = useState(Camera.Constants.Type.front);
   const [redParts, setRedParts] = useState([]);
-  const [isPersonDetected, setIsPersonDetected] = useState(false);
 
   useEffect(() => {
     (async () => {
       const { status } = await Camera.requestPermissionsAsync();
       setHasPermission(status === 'granted');
     })();
-  }, []);
-
-    return () => {
-      // Clean up when the component unmounts
-      clearInterval(intervalId);
-    };
   }, []);
 
   useEffect(() => {
