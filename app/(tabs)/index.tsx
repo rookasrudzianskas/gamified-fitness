@@ -32,8 +32,10 @@ export default function TabOneScreen() {
         randomIndices.push(randomIndex);
       }
     }
+    console.log('Red Parts Indices:', randomIndices); // Check the generated indices
     setRedParts(randomIndices);
   }, []);
+
 
   if (hasPermission === null) {
     return <View />;
@@ -66,21 +68,24 @@ export default function TabOneScreen() {
     // Initialize a copy of isFaceInRedPart to true for all cells
     const updatedIsFaceInRedPart = [...isFaceInRedPart];
 
-    faces.forEach((face) => {
-      const { origin } = face.bounds;
+    // Iterate through grid cells and check if the face is within the red parts
+    for (let i = 0; i < 9; i++) {
+      updatedIsFaceInRedPart[i] = true; // Assume the face is not in the red part
 
-      // Iterate through grid cells and check if the face is within the red parts
-      for (let i = 0; i < 9; i++) {
+      faces.forEach((face) => {
+        const { origin } = face.bounds;
+
         if (isInsideGrid(i, origin.x, origin.y) && redParts.includes(i)) {
           // Face is inside a red part, mark it as false
           updatedIsFaceInRedPart[i] = false;
         }
-      }
-    });
+      });
+    }
 
     // Update the state with the updated values
     setIsFaceInRedPart(updatedIsFaceInRedPart);
   };
+
 
 
   return (
