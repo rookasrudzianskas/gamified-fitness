@@ -2,15 +2,23 @@
 import React, { useState, useEffect } from 'react';
 import { Text, View, TouchableOpacity, StyleSheet } from 'react-native';
 import { Camera } from 'expo-camera';
+import * as FaceDetector from 'expo-face-detector';
+import { Dimensions } from 'react-native';
 
 export default function TabOneScreen() {
   const [hasPermission, setHasPermission] = useState(null);
   const [type, setType] = useState(Camera.Constants.Type.front);
   const [redParts, setRedParts] = useState([]);
+  const [isFaceInRedPart, setIsFaceInRedPart] = useState(
+    Array(9).fill(true) // Initialize to true for all cells
+  );
+
+  const screenWidth = Dimensions.get('window').width;
+  const screenHeight = Dimensions.get('window').height;
 
   useEffect(() => {
     (async () => {
-      const { status } = await Camera.requestPermissionsAsync();
+      const { status } = await Camera.requestCameraPermissionsAsync();
       setHasPermission(status === 'granted');
     })();
   }, []);
@@ -35,11 +43,61 @@ export default function TabOneScreen() {
     return <Text>No access to camera</Text>;
   }
 
+  // Check if a point (x, y) is inside the grid cell with index cellIndex
+  const isInsideGrid = (cellIndex, x, y) => {
+    // Calculate the cell's position based on cellIndex (assuming a 3x3 grid)
+    const cellRow = Math.floor(cellIndex / 3);
+    const cellCol = cellIndex % 3;
+    const cellWidth = screenWidth / 3; // Assuming the screen is divided into 3 columns
+    const cellHeight = screenHeight / 3; // Assuming the screen is divided into 3 rows
+
+    // Calculate the boundaries of the cell
+    const cellLeft = cellCol * cellWidth;
+    const cellRight = (cellCol + 1) * cellWidth;
+    const cellTop = cellRow * cellHeight;
+    const cellBottom = (cellRow + 1) * cellHeight;
+
+    // Check if the point (x, y) is within the cell boundaries
+    return x >= cellLeft && x < cellRight && y >= cellTop && y < cellBottom;
+  };
+
+
+  const handleFacesDetected = ({ faces }) => {
+    // Initialize a copy of isFaceInRedPart to true for all cells
+    const updatedIsFaceInRedPart = [...isFaceInRedPart];
+
+    faces.forEach((face) => {
+      const { origin } = face.bounds;
+
+      // Iterate through grid cells and check if the face is within the red parts
+      for (let i = 0; i < 9; i++) {
+        if (isInsideGrid(i, origin.x, origin.y) && redParts.includes(i)) {
+          // Face is inside a red part, mark it as false
+          updatedIsFaceInRedPart[i] = false;
+        }
+      }
+    });
+
+    // Update the state with the updated values
+    setIsFaceInRedPart(updatedIsFaceInRedPart);
+  };
+
+
   return (
     <View style={{ flex: 1 }}>
-      <Camera style={{ flex: 1 }} type={type}>
+      <Camera
+        style={{ flex: 1 }}
+        type={type}
+        onFacesDetected={handleFacesDetected}
+        faceDetectorSettings={{
+          mode: FaceDetector.FaceDetectorMode.fast,
+          detectLandmarks: FaceDetector.FaceDetectorLandmarks.none,
+          runClassifications: FaceDetector.FaceDetectorClassifications.none,
+          minDetectionInterval: 100,
+          tracking: true,
+        }}
+      >
         <View style={styles.container}>
-          {/* Display your game elements here */}
           {Array(3)
             .fill(0)
             .map((_, i) => (
@@ -47,7 +105,14 @@ export default function TabOneScreen() {
                 {Array(3)
                   .fill(0)
                   .map((_, j) => (
-                    <View style={styles.column} key={j}></View>
+                    <View
+                      style={[
+                        styles.column,
+                        redParts.includes(i * 3 + j) && styles.redColumn,
+                        !isFaceInRedPart[i * 3 + j] && styles.greenColumn,
+                      ]}
+                      key={j}
+                    ></View>
                   ))}
               </View>
             ))}
@@ -85,6 +150,12 @@ const styles = StyleSheet.create({
     flex: 1,
     borderWidth: 2,
     borderColor: 'red',
+  },
+  redColumn: {
+    backgroundColor: 'red',
+  },
+  greenColumn: {
+    backgroundColor: 'green',
   },
   buttonContainer: {
     flex: 0.1,
